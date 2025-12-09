@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="it">
+<meta charset="utf-8">
+<title>Museo Chat (pilot)</title>
+<style>
+  :root{
+    --bg:#f3f4f6;
+    --card-bg:#ffffff;
+    --border:#d1d5db;
+    --accent:#0f766e;
+    --accent-soft:#ccfbf1;
+    --text-main:#111827;
+    --text-sub:#6b7280;
+  }
+
+  *{box-sizing:border-box;}
+
+  /* Base "zoom" via larger default font size */
+  html{
+    font-size:18px; /* ~112–125% compared to browser default */
+  }
+
+  body{
+    font-family:system-ui,Arial,sans-serif;
+    margin:0;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    background:var(--bg);
+    font-size:1rem; /* follows html's base size */
+  }
+
+  header{
+    padding:10px 14px;
+    background:#e5e7eb; /* light grey bar */
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+
+  .header-left{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+
+  .title-main-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .title-main{
+    font-size:24px; /* was 22px */
+    font-weight:700;
+    color:var(--text-main);
+    white-space:nowrap;
+  }
+
+  .robot-logo{
+    width:44px;   /* bigger logo in header */
+    height:44px;
+  }
+
+  .robot-thinking{
+    width:40px;   /* bigger thinking icon */
+    height:40px;
+  }
+
+  .title-sub{
+    font-size:13px;
+    color:var(--text-sub);
+    margin-top:2px;
+  }
+
+  /* Hide language buttons visually but keep logic */
+  .lang-toggle{
+    display:none;
+  }
+
+  .header-right{
+    flex:1 1 auto;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    max-width:520px;
+  }
+
+  #q{
+    flex:1;
+    padding:10px 14px;
+    font-size:15px; /* was 14px */
+    border-radius:999px;
+    border:1px solid #9ca3af;
+    outline:none;
+    background:#ffffff;
+    color:#111827;
+  }
+
+  #q::placeholder{
+    color:#9ca3af;
+  }
+
+  #q:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 2px var(--accent-soft);
+  }
+
+  #send{
+    padding:9px 16px;
+    border-radius:999px;
+    border:none;
+    background:var(--accent);
+    color:#ecfeff;
+    cursor:pointer;
+    font-size:15px; /* was 14px */
+    font-weight:500;
+    white-space:nowrap;
+  }
+
+  #send:hover{
+    filter:brightness(1.08);
+  }
+
+  #log{
+    flex:1;
+    overflow:auto;
+    padding:12px;
+    background:#f9fafb;
+  }
+
+  .bot-header{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  .robot-bot{
+    width:42px;   /* bigger bot icon in messages (was 34px) */
+    height:42px;
+    flex-shrink:0;
+  }
+
+  .bot-text{
+    font-size:16px;  /* was 15px */
+    line-height:1.55;
+    color:var(--text-main);
+  }
+
+  .bot{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    padding:12px;
+    border-radius:10px;
+    margin:8px 0;
+    font-size:15px;
+    line-height:1.45;
+  }
+
+  .you{
+    color:#374151;
+    margin:8px 0;
+    font-size:16px; /* was 14px */
+  }
+
+  .citation{
+    font-size:13px;
+    color:#555;
+    margin-top:6px;
+  }
+
+  input,button{
+    font:inherit;
+  }
+
+  /* Typing indicator dots */
+  .typing-indicator-wrap{
+    font-size:16px; /* was 15px */
+    color:var(--text-sub);
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  .typing-indicator{
+    display:inline-flex;
+    gap:4px;
+    align-items:center;
+  }
+
+  .typing-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#d1d5db;
+    opacity:0.25;
+    animation: dotPulse 1.1s infinite;
+  }
+
+  .typing-dot:nth-child(2){ animation-delay:0.2s; }
+  .typing-dot:nth-child(3){ animation-delay:0.4s; }
+
+  @keyframes dotPulse{
+    0%,60%,100%{opacity:0.25;}
+    30%{opacity:1;}
+  }
+
+  @media (max-width:700px){
+    header{
+      flex-direction:column;
+      align-items:stretch;
+      gap:8px;
+    }
+    .header-right{
+      max-width:none;
+    }
+    .title-main{font-size:20px;}  /* was 17px */
+    .title-sub{font-size:12px;}
+  }
+</style>
+
+<body>
+<header>
+  <div class="header-left">
+    <div class="title-main-row">
+      <img src="chatbot_answering.png" alt="Guida virtuale" class="robot-logo">
+      <div class="title-main">Museo Chat</div>
+    </div>
+    <div class="title-sub">
+      Guida virtuale del Museo delle Genti d’Abruzzo (scrivi in italiano o in inglese)
+    </div>
+
+    <!-- Hidden language buttons, logic still works -->
+    <span class="lang-toggle">
+      <button id="set-it" type="button">IT</button>
+      <button id="set-en" type="button">EN</button>
+    </span>
+  </div>
+
+  <div class="header-right">
+    <input
+      id="q"
+      placeholder="Scrivi qui la tua domanda… (italiano o inglese)"
+    >
+    <button id="send">Invia</button>
+  </div>
+</header>
+
+<div id="log"></div>
+
+<script>
+// Simple page-level "zoom" on desktop screens (optional)
+if (window.innerWidth >= 1024) {
+  document.body.style.zoom = "1.25"; // ~125% zoom
+}
+
+// Read params either from ?query or #hash (so both styles work)
+const searchPart = window.location.search ? window.location.search.slice(1) : "";
+const hashPart   = window.location.hash ? window.location.hash.slice(1) : "";
+const params     = new URLSearchParams(searchPart || hashPart);
+
+// API base:
+//  1) ?api=http://host:port  (override)
+//  2) otherwise, same origin as this page
+let api = params.get("api") || window.location.origin;
+
+// Fallback when opening embed.html directly from disk (file://...)
+if (!api || api.startsWith("file:") || api === "null") {
+  api = "http://127.0.0.1:8000";
+}
+
+const room_id   = params.get("room_id") || "";
+const object_id = params.get("object_id") || "";
+let userLang = params.get("lang")
+              || localStorage.getItem("museumChatLang")
+              || (navigator.language.startsWith("en") ? "en" : "it");
+
+// Keep old language toggle logic (buttons are hidden visually)
+const btnIt = document.getElementById('set-it');
+const btnEn = document.getElementById('set-en');
+
+if (btnIt) {
+  btnIt.onclick = () => {
+    userLang = "it";
+    localStorage.setItem("museumChatLang", "it");
+  };
+}
+
+if (btnEn) {
+  btnEn.onclick = () => {
+    userLang = "en";
+    localStorage.setItem("museumChatLang", "en");
+  };
+}
+
+const log = document.getElementById('log');
+const input = document.getElementById('q');
+
+// --- chat history for sliding window behaviour ---
+let chatHistory = [];  // array of { role: 'user' | 'assistant', content: string }
+const MAX_HISTORY_TURNS = 20; // ~10 Q/A pairs
+
+function add(html, cls="bot"){
+  const div = document.createElement('div');
+  div.className = cls;
+  div.innerHTML = html;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Typing indicator
+let typingDiv = null;
+
+function showTyping(){
+  if (typingDiv) return;
+  typingDiv = document.createElement('div');
+  typingDiv.className = "bot";
+  typingDiv.innerHTML = `
+    <div class="typing-indicator-wrap">
+      <img src="chatbot_thinking.png" alt="Guida sta pensando" class="robot-thinking">
+      <span>Guida sta pensando…</span>
+      <span class="typing-indicator">
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+      </span>
+    </div>`;
+  log.appendChild(typingDiv);
+  log.scrollTop = log.scrollHeight;
+}
+
+function hideTyping(){
+  if (typingDiv && typingDiv.parentNode){
+    typingDiv.parentNode.removeChild(typingDiv);
+  }
+  typingDiv = null;
+}
+
+// Typewriter effect for the answer (fast, word-based)
+function typeText(element, fullText, done){
+  if (!fullText){
+    if (done) done();
+    return;
+  }
+  const tokens = fullText.split(/(\s+)/); // keep spaces as tokens
+  let idx = 0;
+
+  // Aim for ~0.8–1s total typing time, clamped to reasonable delays
+  const TOTAL_MS = 900;
+  const minDelay = 10;
+  const maxDelay = 45;
+  let delay = Math.floor(TOTAL_MS / tokens.length);
+  if (!Number.isFinite(delay) || delay <= 0) delay = minDelay;
+  delay = Math.max(minDelay, Math.min(maxDelay, delay));
+
+  function step(){
+    if (idx >= tokens.length){
+      if (done) done();
+      return;
+    }
+    element.textContent += tokens[idx];
+    idx++;
+    setTimeout(step, delay);
+  }
+  step();
+}
+
+if (room_id) add(`<i>Contesto sala:</i> ${room_id}`,"you");
+if (object_id) add(`<i>Contesto oggetto:</i> ${object_id}`,"you");
+
+async function ask(){
+  const q = input.value.trim();
+  if (!q) return;
+
+  // Show user message
+  add(`<b>Tu:</b> ${q}`,"you");
+  input.value = "";
+
+  // Prepare history for this request (previous turns only)
+  const historyForRequest = chatHistory.slice(-MAX_HISTORY_TURNS);
+
+  let data;
+  showTyping();
+  try {
+    const res = await fetch(api + "/ask", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        q,
+        lang: userLang,
+        room_id,
+        object_id,
+        history: historyForRequest
+      })
+    });
+    data = await res.json();
+  } catch (err) {
+    console.error("Error calling /ask:", err);
+    hideTyping();
+    add(`<b>Guida:</b> Si è verificato un errore. Riprova tra poco.`,"bot");
+    return;
+  }
+  hideTyping();
+
+  const answer = data && data.answer ? data.answer : "";
+
+  // Create a bot message with an empty span where we will "type" the text
+  const msgDiv = document.createElement('div');
+  msgDiv.className = "bot";
+
+  const spanId = "ans-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+
+  let inner = `
+    <div class="bot-header">
+      <img src="chatbot_answering.png" alt="Guida virtuale" class="robot-bot">
+      <div class="bot-text"><span id="${spanId}"></span></div>
+    </div>
+  `;
+
+  if (data && data.citations && data.citations.length){
+    inner += `<div class="citation">Fonti: ` +
+      data.citations.map((c,i)=>
+        `[${i+1}] <a target="_blank" href="${c.url}">${c.heading||c.url}</a>`
+      ).join(" · ") +
+      `</div>`;
+  }
+
+  msgDiv.innerHTML = inner;
+
+  log.appendChild(msgDiv);
+  log.scrollTop = log.scrollHeight;
+
+  const spanEl = document.getElementById(spanId);
+  typeText(spanEl, answer);
+
+  // --- update history AFTER we know the full answer text ---
+  chatHistory.push({ role: "user", content: q });
+  chatHistory.push({ role: "assistant", content: answer });
+
+  // Keep only the most recent turns so history doesn't grow forever
+  if (chatHistory.length > 2 * MAX_HISTORY_TURNS) {
+    chatHistory = chatHistory.slice(-2 * MAX_HISTORY_TURNS);
+  }
+}
+
+document.getElementById('send').onclick = ask;
+input.addEventListener('keydown', e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    ask();
+  }
+});
+</script>
+</body>
+</html>
